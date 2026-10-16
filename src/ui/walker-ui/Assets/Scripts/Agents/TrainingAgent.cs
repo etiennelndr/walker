@@ -1,139 +1,231 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Api;
+using Api.Models;
+
 using UnityEngine;
 using UnityEngine.AI;
 
-[Serializable]
-public class TargetPoints {
-    public Transform[] Positions;
-    public bool Visible = false;
-    public float Height = 2.5f;
-}
+using Random = System.Random;
 
-[Serializable]
-public class TrainingAgentConfig : BaseAgentConfig {
-    public float remainingDistanceTolerance = 2f;
-    public TargetPoints targetPoints;
-    public string serverURL;
-}
+namespace Agents {
+    [Serializable]
+    public class TargetPoints {
+        public Transform[] positions;
 
-public class TrainingAgent : BaseAgent<TrainingAgentConfig> {
-    public TrainingAgent(TrainingAgentConfig config, GameObject linkedGO) : base(config, linkedGO) {
-        navMeshAgent = linkedGO.GetComponent<NavMeshAgent>();
+        public bool isVisible;
+
+        [Min(0.5f)] public float height = 2.5f;
     }
 
-    private NavMeshAgent navMeshAgent;
-    private Vector3 currentTargetPoint;
-    private Vector3 previousTargetPoint;
-    private List<Vector3> nextTargetPoints;
+    [Serializable]
+    public class TrainingAgentConfig : BaseAgentConfig {
+        public TargetPoints targetPoints;
+        [Min(0.5f)] public float remainingDistanceTolerance = 2f;
 
-    private readonly System.Random rnd = new System.Random();
-
-    public override void Init() {
-        Debug.Log("Training agent: Init");
-
-        Debug.Log(config);
-
-        // Disabling auto-braking allows for continuous movement
-        // between points (ie, the agent doesn't slow down as it
-        // approaches a destination point).
-        navMeshAgent.autoBraking = false;
-
-        UpdateTarget();
+        // Maximum angle between the directions in which the agent enters and leaves a target: beyond
+        // it, the agent is considered as turning back
+        [Range(0, 180)] public int maxTurnAngle = 135;
     }
 
-    public override void Move() {
-        Debug.Log("Training agent: Move");
-        // Choose the next destination point when the agent gets close to the current one.
-        if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance < config.remainingDistanceTolerance)
+    public class TrainingAgent : BaseAgent<TrainingAgentConfig> {
+        private readonly NavMeshAgent _navMeshAgent;
+
+        private readonly Random _rnd = new();
+
+        private Vector3 _currentTargetPoint;
+
+        // Direction in which the agent enters its current target, or zero if unknown (e.g. for its
+        // first target)
+        private Vector3 _incomingDirection;
+        private bool _isSendingState;
+        private List<Vector3> _nextTargetPoints;
+        private Vector3 _previousTargetPoint;
+
+        public TrainingAgent(TrainingAgentConfig config, Walker walker) : base(config, walker) {
+            _navMeshAgent = walker.GetComponent<NavMeshAgent>();
+        }
+
+        protected override Vector3 Velocity => _navMeshAgent.velocity;
+
+        private IEnumerable<Vector3> TargetPointPositions =>
+            config.targetPoints.positions.Select(targetPoint => targetPoint.position);
+
+        public override void Init() {
+            // Disabling auto-braking allows for continuous movement between points (i.e., the agent
+            // doesn't slow down as it approaches a destination point).
+            _navMeshAgent.autoBraking = false;
+
+            // Returns if there are not enough points to move from one to another
+            if (config.targetPoints.positions.Length < 2) {
+                Disable("At least two target points must be configured");
+                return;
+            }
+
+            // Start from the position of the walker, without any incoming direction: the first target
+            // may be in any direction
+            _currentTargetPoint = walker.transform.position;
+            _previousTargetPoint = _currentTargetPoint;
             UpdateTarget();
-
-        if (config.targetPoints.Visible)
-            DrawTargetPoints();
-    }
-
-    void UpdateTarget() {
-        // Returns if no points have been set up
-        if (config.targetPoints.Positions.Length == 0)
-            return;
-
-        // Choose the next point in the array
-        Vector3 newTargetPoint = GetNextTargetPoint();
-        // Set the agent to go to the currently selected target
-        navMeshAgent.SetDestination(newTargetPoint);
-        // Save previous and new target points for next update
-        previousTargetPoint = currentTargetPoint;
-        currentTargetPoint = newTargetPoint;
-        // Retrieve next target points for debugging purposes
-        nextTargetPoints = GetVisiblePoints(currentTargetPoint);
-    }
-
-    Vector3 GetNextTargetPoint() {
-        List<Vector3> nextPoints;
-        // Returns the first point if no target is currently set (i.e. point selected at startup)
-        if (currentTargetPoint == Vector3.zero) {
-            Debug.Log("No target point set, defaulting to the first point available");
-            nextPoints = GetVisiblePoints(navMeshAgent.transform.position);
-        }
-        else {
-            // Retrieve each point with no collider intersecting a line between it and the current target
-            nextPoints = GetVisiblePoints(currentTargetPoint);
-
-            // When no points are "visible", select a random one in the global list of points
-            if (nextPoints.Count == 0) {
-                Debug.LogError("Unable to find any visible target point(s), defaulting to a random one");
-                nextPoints = config.targetPoints.Positions.Select(p => p.position).ToList();
-            }
-            else {
-                Debug.Log("Found " + nextPoints.Count + " new target point(s)");
-            }
-
-            // Exclude the previous and current target points
-            nextPoints = nextPoints.Where(p => p != currentTargetPoint && p != previousTargetPoint).ToList();
         }
 
-        int nextPointIndex = rnd.Next(nextPoints.Count);
-        return nextPoints[nextPointIndex];
-    }
-
-    List<Vector3> GetVisiblePoints(Vector3 point) {
-        List<Vector3> visiblePoints = new List<Vector3>();
-        foreach (var targetPoint in config.targetPoints.Positions) {
-            var targetPointPosition = targetPoint.position;
-            // If the current target point is the input point,
-            if (targetPointPosition == point
-                // or the point is hidden by an object,
-                || Physics.Linecast(targetPointPosition, point)
-                // or the distance between the two points is less than the required tolerance
-                || Vector3.Distance(targetPointPosition, point) < config.remainingDistanceTolerance
-            ) {
-                // then, ignore this point
-                continue;
+        public override void Step() {
+            // Choose the next destination point when the agent gets close to the current one
+            if (!_navMeshAgent.pathPending && _navMeshAgent.remainingDistance < config.remainingDistanceTolerance) {
+                UpdateTarget();
             }
-            visiblePoints.Add(targetPointPosition);
+
+            if (config.targetPoints.isVisible) {
+                DrawTargetPoints();
+            }
+
+            if (Time.frameCount % config.rays.sendEveryNFrames == 0) {
+                SendState();
+            }
         }
-        return visiblePoints;
-    }
 
-    void DrawTargetPoints() {
-        var targetPoints = config.targetPoints;
-        var transform = linkedGO.transform;
-        foreach (var targetPoint in targetPoints.Positions) {
-            var targetPointPosition = targetPoint.position;
+        protected override void Enable(string reason) {
+            base.Enable(reason);
 
-            if (targetPointPosition == currentTargetPoint) {
-                Debug.DrawRay(targetPointPosition, transform.up * targetPoints.Height, Color.green);
+            if (_navMeshAgent) {
+                _navMeshAgent.isStopped = false;
             }
-            else if (targetPointPosition == previousTargetPoint) {
-                Debug.DrawRay(targetPointPosition, transform.up * targetPoints.Height, Color.blue);
+        }
+
+        protected override void Disable(string reason) {
+            base.Disable(reason);
+
+            if (_navMeshAgent) {
+                _navMeshAgent.isStopped = true;
             }
-            else if (nextTargetPoints.Contains(targetPointPosition)) {
-                Debug.DrawRay(targetPointPosition, transform.up * targetPoints.Height, Color.yellow);
+        }
+
+        private async void SendState() {
+            if (_isSendingState) {
+                return;
             }
-            else {
-                Debug.DrawRay(targetPointPosition, transform.up * targetPoints.Height, Color.black);
+
+            try {
+                State state = CollectState();
+                _isSendingState = true;
+                await apiClient.CreateState(state);
             }
+            catch (ApiException e) {
+                Disable(e.Message);
+            }
+            catch (Exception e) {
+                Disable($"Unexpected error while sending the state: {e.Message}");
+            }
+            finally {
+                _isSendingState = false;
+            }
+        }
+
+        private void UpdateTarget() {
+            // Retrieve the points the agent may go to from its current target
+            List<Vector3> candidatePoints = GetCandidatePoints();
+            // Randomly select the new target point from the candidates
+            Vector3 newTargetPoint = candidatePoints[_rnd.Next(candidatePoints.Count)];
+            // Set the agent to go to the currently selected target
+            _navMeshAgent.SetDestination(newTargetPoint);
+            // Save the direction in which the agent will enter the new target
+            _incomingDirection = GetIncomingDirection(_currentTargetPoint, newTargetPoint);
+            // Save previous and new target points for next update
+            _previousTargetPoint = _currentTargetPoint;
+            _currentTargetPoint = newTargetPoint;
+            // Retrieve next target points for debugging purposes
+            _nextTargetPoints = GetCandidatePoints();
+        }
+
+        // Returns the points the agent may go to from its current target, relaxing the criteria one at
+        // a time until at least one point remains:
+        // 1. the visible points reachable without turning back, except the previous target;
+        // 2. the visible points (e.g. at a dead end, where the agent has to turn back);
+        // 3. any point but the current target.
+        private List<Vector3> GetCandidatePoints() {
+            List<Vector3> visiblePoints = GetVisiblePoints(_currentTargetPoint);
+
+            List<Vector3> forwardPoints = visiblePoints
+                .Where(point => point != _previousTargetPoint && !IsTurningBack(point))
+                .ToList();
+
+            if (forwardPoints.Count > 0) {
+                return forwardPoints;
+            }
+
+            if (visiblePoints.Count > 0) {
+                return visiblePoints;
+            }
+
+            return TargetPointPositions.Where(point => point != _currentTargetPoint).ToList();
+        }
+
+        private void DrawTargetPoints() {
+            TargetPoints targetPoints = config.targetPoints;
+            Transform transform = walker.transform;
+            foreach (Transform targetPoint in targetPoints.positions) {
+                Vector3 targetPointPosition = targetPoint.position;
+
+                if (targetPointPosition == _currentTargetPoint) {
+                    Debug.DrawRay(targetPointPosition, transform.up * targetPoints.height, Color.green);
+                }
+                else if (targetPointPosition == _previousTargetPoint) {
+                    Debug.DrawRay(targetPointPosition, transform.up * targetPoints.height, Color.blue);
+                }
+                else if (_nextTargetPoints.Contains(targetPointPosition)) {
+                    Debug.DrawRay(targetPointPosition, transform.up * targetPoints.height, Color.yellow);
+                }
+                else {
+                    Debug.DrawRay(targetPointPosition, transform.up * targetPoints.height, Color.black);
+                }
+            }
+        }
+
+        private List<Vector3> GetVisiblePoints(Vector3 currentPoint) {
+            return TargetPointPositions
+                .Where(targetPointPosition =>
+                    // Keep the point if it is not the current point itself,
+                    targetPointPosition != currentPoint
+                    // and the point is not hidden by an object,
+                    && !Physics.Linecast(targetPointPosition, currentPoint)
+                    // and the distance between the two points is more than the required tolerance
+                    && Vector3.Distance(targetPointPosition, currentPoint) >= config.remainingDistanceTolerance
+                )
+                .ToList();
+        }
+
+        // Whether the agent turns back to go from its current target to a point, i.e. the angle between
+        // the directions in which it enters and leaves the current target exceeds the maximum turn
+        // angle (never true if either direction is unknown, the angle being then zero)
+        private bool IsTurningBack(Vector3 point) {
+            Vector3 outgoingDirection = GetOutgoingDirection(_currentTargetPoint, point);
+            return Vector3.Angle(_incomingDirection, outgoingDirection) > config.maxTurnAngle;
+        }
+
+        // Direction in which an agent enters a point, coming from another one, or zero if unknown
+        private static Vector3 GetIncomingDirection(Vector3 from, Vector3 to) {
+            Vector3[] corners = GetPathCorners(from, to);
+            return corners.Length < 2 ? Vector3.zero : corners[^1] - corners[^2];
+        }
+
+        // Direction in which an agent leaves a point to reach another one, or zero if unknown
+        private static Vector3 GetOutgoingDirection(Vector3 from, Vector3 to) {
+            Vector3[] corners = GetPathCorners(from, to);
+            return corners.Length < 2 ? Vector3.zero : corners[1] - corners[0];
+        }
+
+        // Returns the corners of the NavMesh path between two points (i.e. the points where it turns,
+        // including both ends), or an empty array if there is no complete path
+        private static Vector3[] GetPathCorners(Vector3 from, Vector3 to) {
+            NavMeshPath path = new();
+            bool isFound = NavMesh.CalculatePath(from, to, NavMesh.AllAreas, path);
+            if (!isFound || path.status != NavMeshPathStatus.PathComplete) {
+                return Array.Empty<Vector3>();
+            }
+
+            return path.corners;
         }
     }
 }

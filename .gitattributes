@@ -1,0 +1,5 @@
+# Store the text files with LF line endings in the repository
+* text=auto
+
+# Check out the C# scripts with CRLF line endings, as required by their .editorconfig
+*.cs text eol=crlf

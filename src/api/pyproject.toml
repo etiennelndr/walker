@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.32.0,<2.0.0", "uv-dynamic-versioning>=0.14.0,<1.0.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "walker.api"
+dynamic = [
+    # The version is computed from the git tags at build/installation time
+    "version"
+]
+description = "An API for autonomous movements of bots in unknown locations."
+authors = [
+    { name = "Etienne Landuré", email = "25793763+etiennelndr@users.noreply.github.com" }
+]
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "walker.config",
+    "click==8.5.0",
+    "confuse==2.3.0",
+    "cupy-cuda13x[ctk]",
+    "loguru==0.7.3",
+    "msgspec==0.22.0",
+    "quart==0.23.1",
+    "quart-schema==0.25.0",
+    "uvicorn[standard]==0.54.0",
+]
+
+[project.scripts]
+walker-api = "walker.api.__main__:main"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/walker"]
+
+[tool.uv-dynamic-versioning]
+fallback-version = "0.0.0"
+
+[tool.uv.sources]
+"walker.config" = { workspace = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+timeout = 30

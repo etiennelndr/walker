@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.32.0,<2.0.0", "uv-dynamic-versioning>=0.14.0,<1.0.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "walker.config"
+dynamic = [
+    # The version is computed from the git tags at build/installation time
+    "version"
+]
+description = "Configuration of Walker's Python projects."
+authors = [
+    { name = "Etienne Landuré", email = "25793763+etiennelndr@users.noreply.github.com" }
+]
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "confuse==2.3.0",
+]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/walker"]
+
+[tool.uv-dynamic-versioning]
+fallback-version = "0.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 30

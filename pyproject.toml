@@ -1,0 +1,75 @@
+[dependency-groups]
+dev = [
+    # Linting and formatting dependencies
+    "ruff==0.16.10",
+    "mypy==2.4.0",
+    "pre-commit==4.6.2",
+    # Test dependencies
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "pytest-timeout==2.4.0",
+]
+
+[tool.uv]
+# Versions of the dependencies shared by several workspace members, which declare them unpinned
+constraint-dependencies = [
+    "cupy-cuda13x==14.2.0",
+    "keras==3.15.1",
+    "torch==2.14.1",
+]
+
+[tool.uv.workspace]
+members = [
+    "src/config",
+    "src/api",
+    "src/trainer"
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cuda132" }
+
+[[tool.uv.index]]
+name = "pytorch-cuda132"
+url = "https://download.pytorch.org/whl/cu132"
+explicit = true
+
+[tool.mypy]
+files = [
+    "src/config/src",
+    "src/api/src",
+    "src/trainer/src"
+]
+mypy_path = [
+    "src/config/src",
+    "src/api/src",
+    "src/trainer/src"
+]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["cupy.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+target-version = "py314"
+src = ["src/*/src"]
+extend-exclude = ["src/ui"]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    "W",
+    # Pyflakes
+    "F",
+    # isort
+    "I",
+    # Pylint
+    "PL"
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore `PL` rules in the tests of the workspace members
+"src/*/tests/**" = ["PL"]

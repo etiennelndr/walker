@@ -1,71 +1,43 @@
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling>=1.32.0,<2.0.0", "uv-dynamic-versioning>=0.14.0,<1.0.0"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
+[project]
 name = "walker.trainer"
-version = "0.1.0"
-description = ""
-authors = ["Etienne Landuré <25793763+etiennelndr@users.noreply.github.com>"]
+dynamic = [
+    # The version is computed from the git tags at build/installation time
+    "version"
+]
+description = "Training of autonomous movements of bots in unknown locations."
+authors = [
+    { name = "Etienne Landuré", email = "25793763+etiennelndr@users.noreply.github.com" }
+]
 readme = "README.md"
-packages = [
-    { include = "trainer", from = "walker" },
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "walker.config",
+    "cupy-cuda13x[ctk]",
+    "keras",
+    "prefect==3.8.8",
+    "torch",
+    "typer==0.27.3",
 ]
 
-[tool.poetry.dependencies]
-python = ">=3.10,<3.12"
-typer = "0.9.0"
-numpy = "1.25.2"
-torch = { version = "2.0.1", source = "pytorch-cuda118" }
-flytekit = "1.9.1"
-
-[tool.poetry.group.dev.dependencies]
-black = "23.9.1"
-ruff = "0.0.290"
-pytest = "7.4.2"
-
-[tool.poetry.scripts]
+[project.scripts]
 trainer = "walker.trainer.__main__:main"
 
-[[tool.poetry.source]]
-name = "pytorch-cuda118"
-url = "https://download.pytorch.org/whl/cu118"
-priority = "explicit"
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
 
-[tool.black]
-line-length = 100
+[tool.hatch.build.targets.wheel]
+packages = ["src/walker"]
 
-[tool.ruff]
-select = ["E", "W", "F", "I", "PL"]
-ignore = []
+[tool.uv-dynamic-versioning]
+fallback-version = "0.0.0"
 
-# Exclude a variety of commonly ignored directories
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-]
+[tool.uv.sources]
+"walker.config" = { workspace = true }
 
-# Same as Black
-line-length = 100
-
-# Assume Python 3.10
-target-version = "py310"
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 30
