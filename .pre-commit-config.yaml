@@ -1,16 +1,88 @@
-exclude: ^src/ui/
-fail_fast: true
+# Exclude the Unity project, except its C# scripts and their formatting rules
+exclude: ^src/ui/(?!walker-ui/(Assets/Scripts/.*\.cs|\.editorconfig)$)
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.290
+  - repo: local
     hooks:
-    - id: ruff
-      stages: [commit]
-      args: [--fix, --exit-non-zero-on-fix]
+      # Check the consistency of the lockfile with the pyproject.toml files
+      - id: uv-lock
+        name: uv lock
+        stages:
+          - pre-commit
+        language: system
+        entry: uv lock --check
+        files: (^|/)pyproject\.toml$|^uv\.lock$
+        pass_filenames: false
 
-  - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 23.9.1
-    hooks: 
-    - id: black
-      stages: [commit]
-      args: [--line-length, "100"]
+      # Code formatting
+      - id: ruff-check
+        name: Ruff Check
+        stages:
+          - pre-commit
+        language: system
+        entry: uv run ruff check --fix
+        types:
+          - python
+
+      - id: ruff-format
+        name: Ruff Format
+        stages:
+          - pre-commit
+        language: system
+        entry: uv run ruff format
+        types:
+          - python
+
+      # --folder: format the files directly, without loading the Unity-generated projects
+      - id: dotnet-format
+        name: Dotnet Format
+        stages:
+          - pre-commit
+        language: system
+        entry: dotnet format whitespace src/ui/walker-ui/Assets/Scripts --folder
+        files: ^src/ui/walker-ui/(Assets/Scripts/.*\.cs|\.editorconfig)$
+        pass_filenames: false
+
+      # Code analysis
+      - id: mypy
+        name: MyPy
+        stages:
+          - pre-commit
+        language: system
+        entry: uv run mypy
+        types:
+          - python
+        pass_filenames: false
+
+      # Tests
+      - id: pytest-config
+        name: Pytest (config)
+        stages:
+          - pre-commit
+        language: system
+        entry: uv run --directory src/config pytest
+        files: ^src/config/
+        types:
+          - python
+        pass_filenames: false
+
+      - id: pytest-api
+        name: Pytest (api)
+        stages:
+          - pre-commit
+        language: system
+        entry: uv run --directory src/api pytest
+        files: ^src/(api|config)/
+        types:
+          - python
+        pass_filenames: false
+
+      - id: pytest-trainer
+        name: Pytest (trainer)
+        stages:
+          - pre-commit
+        language: system
+        entry: uv run --directory src/trainer pytest
+        files: ^src/(trainer|config)/
+        types:
+          - python
+        pass_filenames: false
