@@ -1,16 +1,15 @@
-using UnityEngine;
-using UnityEngine.AI;
+using Agents;
 
-public enum Behaviour {
-    TRAINING,
-    PATROLLING
+using UnityEngine;
+
+public enum WalkerBehaviour {
+    Patrolling,
+    Training
 }
+
 public class Walker : MonoBehaviour {
     [SerializeField]
-    private string serverURL;
-
-    [SerializeField]
-    private Behaviour behaviour;
+    private WalkerBehaviour behaviour;
 
     [SerializeField]
     private TrainingAgentConfig trainingAgentConfig;
@@ -18,26 +17,31 @@ public class Walker : MonoBehaviour {
     [SerializeField]
     private PatrollingAgentConfig patrollingAgentConfig;
 
-    private BaseAgent agent;
+    private BaseAgent _agent;
 
     // Start is called before the first frame update
-    void Start() {
-        var navMeshAgent = GetComponent<NavMeshAgent>();
-
-        if (behaviour == Behaviour.TRAINING) {
-            Debug.Log(trainingAgentConfig);
-            agent = new TrainingAgent(trainingAgentConfig, gameObject);
+    private void Start() {
+        switch (behaviour) {
+            case WalkerBehaviour.Patrolling: {
+                _agent = new PatrollingAgent(patrollingAgentConfig, this);
+                break;
+            }
+            case WalkerBehaviour.Training: {
+                _agent = new TrainingAgent(trainingAgentConfig, this);
+                break;
+            }
+            default: {
+                Debug.LogError($"Unhandled behaviour: {behaviour}", this);
+                enabled = false;
+                return;
+            }
         }
-        else if (behaviour == Behaviour.PATROLLING) {
-            Debug.Log(patrollingAgentConfig);
-            agent = new PatrollingAgent(patrollingAgentConfig, gameObject);
-        }
 
-        agent.Init();
+        _agent.Init();
     }
 
     // Update is called once per frame
     void Update() {
-        agent.Move();
+        _agent.Step();
     }
 }

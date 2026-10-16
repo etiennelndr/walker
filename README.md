@@ -7,12 +7,12 @@ from the states it goes through.
 
 ## Projects
 
-| Project                    | Description                                                                |
-|----------------------------|----------------------------------------------------------------------------|
-| [`src/config`](src/config)   | Library to configure the Python projects. |
-| [`src/api`](src/api)         | API which collects the states of a walker and generates its movements.     |
-| [`src/trainer`](src/trainer) | Training of the models which generate the movements of a walker.           |
-| [`src/ui`](src/ui)           | Unity project in which a walker is simulated.                              |
+| Project                      | Description                                                            |
+|------------------------------|------------------------------------------------------------------------|
+| [`src/config`](src/config)   | Library to configure the Python projects.                              |
+| [`src/api`](src/api)         | API which collects the states of a walker and generates its movements. |
+| [`src/trainer`](src/trainer) | Training of the models which generate the movements of a walker.       |
+| [`src/ui`](src/ui)           | Unity project in which a walker is simulated.                          |
 
 The Python projects (`config`, `api` and `trainer`) are the members of a single
 [uv](https://docs.astral.sh/uv/) workspace.
@@ -66,18 +66,23 @@ The trainer is not implemented yet.
 Open the `src/ui/walker-ui` directory with Unity, load the `Assets/scene.unity` scene and enter
 the Play mode.
 
-The simulation does not communicate with the API yet.
+With the `Training` behaviour, the walker moves between the target points of the scene and sends
+its states to the API at the configured server URL (`http://127.0.0.1:8000` by default). Start the
+collection of training states (`uv run walker-api collect`) before entering the Play mode. The
+walker stops as soon as a state can't be sent.
+
+The `Patrolling` behaviour is not implemented yet.
 
 ## Development
 
 Run the following commands from the root of the repository:
 
-| Command                                   | Description                                 |
-|-------------------------------------------|---------------------------------------------|
-| `uv run ruff check`                       | Lints the Python projects.                  |
-| `uv run ruff format`                      | Formats the Python projects.                |
-| `uv run mypy`                             | Type-checks the Python projects.            |
-| `uv run --directory src/<project> pytest` | Runs the tests of a Python project.         |
+| Command                                   | Description                                  |
+|-------------------------------------------|----------------------------------------------|
+| `uv run ruff check`                       | Lints the Python projects.                   |
+| `uv run ruff format`                      | Formats the Python projects.                 |
+| `uv run mypy`                             | Type-checks the Python projects.             |
+| `uv run --directory src/<project> pytest` | Runs the tests of a Python project.          |
 | `uv run pre-commit run --all-files`       | Runs all the checks above, as a commit does. |
 
 The version of the Python projects is computed from the git tags of the repository.
