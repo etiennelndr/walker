@@ -9,12 +9,13 @@ from the states it goes through.
 
 | Project                      | Description                                                            |
 |------------------------------|------------------------------------------------------------------------|
+| [`src/core`](src/core)       | Common building blocks for the Python projects.                        |
 | [`src/config`](src/config)   | Library to configure the Python projects.                              |
 | [`src/api`](src/api)         | API which collects the states of a walker and generates its movements. |
 | [`src/trainer`](src/trainer) | Training of the models which generate the movements of a walker.       |
 | [`src/ui`](src/ui)           | Unity project in which a walker is simulated.                          |
 
-The Python projects (`config`, `api` and `trainer`) are the members of a single
+The Python projects (`core`, `config`, `api` and `trainer`) are the members of a single
 [uv](https://docs.astral.sh/uv/) workspace.
 
 ## Requirements

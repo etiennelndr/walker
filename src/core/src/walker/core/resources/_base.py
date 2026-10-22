@@ -1,52 +1,48 @@
-"""Module for defining, encoding, and decoding strongly typed API resources."""
+"""Module for defining, encoding, and decoding strongly typed resources."""
 
 from __future__ import annotations
 
-from abc import ABCMeta
 from typing import Any, ClassVar, Self, cast
 
 import msgspec.json
 from msgspec import UNSET, DecodeError, EncodeError, Struct, StructMeta, UnsetType, to_builtins
 from msgspec.structs import replace
-from quart import Response
-from werkzeug.datastructures import Headers
 
-type APIResourceEncoder = msgspec.json.Encoder
-type APIResourceDecoder[T] = msgspec.json.Decoder[T]
+type ResourceEncoder = msgspec.json.Encoder
+type ResourceDecoder[T] = msgspec.json.Decoder[T]
 
 
-class LazyAPIResourceDecoder:
-    """Descriptor that lazily instantiates an :py:class:`APIResourceDecoder`.
+class LazyResourceDecoder:
+    """Descriptor that lazily instantiates a :py:class:`ResourceDecoder`.
 
-    This descriptor is attached to :py:class:`APIResource.decoder` during subclass initialization.
+    This descriptor is attached to :py:class:`Resource.decoder` during subclass initialization.
     When the ``decoder`` attribute is first accessed on a subclass, the descriptor creates a new
-    :py:class:`APIResourceDecoder` instance bound to that subclass, assigns it to the subclass
+    :py:class:`ResourceDecoder` instance bound to that subclass, assigns it to the subclass
     attribute, and returns it. Subsequent accesses use the same instance.
 
-    This ensures that every :py:class:`APIResource` subclass receives its own dedicated decoder
+    This ensures that every :py:class:`Resource` subclass receives its own dedicated decoder
     object without requiring explicit assignment in each subclass.
     """
 
-    def __get__[T: APIResource](self, _, cls: type[T]) -> APIResourceDecoder[T]:
-        cls_decoder = APIResourceDecoder.__value__(cls)
+    def __get__[T: Resource](self, _, cls: type[T]) -> ResourceDecoder[T]:
+        cls_decoder = ResourceDecoder.__value__(cls)
         # Replace this instance with the newly created decoder to avoid calling this descriptor on
-        # each call to 'APIResource.decoder'
+        # each call to 'Resource.decoder'
         cls.decoder = cls_decoder
         return cls_decoder
 
 
-class APIResourceMeta(StructMeta, ABCMeta):
-    """Metaclass for API resources.
+class ResourceMeta(StructMeta):
+    """Metaclass for resources.
 
-    Extends :py:class:`msgspec.StructMeta` to automatically configure all API resource classes with
-    keyword-only arguments. It also extends :py:class:`abc.ABCMeta`, so that API resources may
-    declare abstract methods.
+    Extends :py:class:`msgspec.StructMeta` to automatically configure all resource classes with
+    keyword-only arguments.
     """
 
     def __new__(
         cls, name: str, bases: tuple[type, ...], namespace: dict[str, Any], **struct_config: Any
-    ) -> APIResourceMeta:
-        """Creates a new API resource class with keyword-only fields.
+    ) -> ResourceMeta:
+        """Creates a new resource class with keyword-only fields.
 
         :param name: name of the class being created.
         :param bases: base classes of the new class.
@@ -64,27 +60,25 @@ class APIResourceMeta(StructMeta, ABCMeta):
         return super().__new__(cls, name, bases, namespace, **struct_config)
 
 
-class APIResource(Struct, metaclass=APIResourceMeta, kw_only=True):
-    """Base class for all API resources."""
+class Resource(Struct, metaclass=ResourceMeta, kw_only=True):
+    """Base class for all resources."""
 
-    encoder: ClassVar[APIResourceEncoder] = msgspec.json.Encoder(
+    encoder: ClassVar[ResourceEncoder] = msgspec.json.Encoder(
         # Deterministic order is activated to ensure buffers consistency
         order="deterministic"
     )
     """A shared encoder instance for serializing resource instances to JSON-compatible
     representations
     """
-    decoder: ClassVar[APIResourceDecoder[Self]]
+    decoder: ClassVar[ResourceDecoder[Self]]
     """A lazily-initialized decoder instance specific to each subclass, responsible for parsing JSON
     data into resource objects
     """
-    response_class: ClassVar[type[Response]] = Response
-    """The class of the responses built from resource instances"""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
 
-        cls.decoder = cast(APIResourceDecoder[Self], LazyAPIResourceDecoder())
+        cls.decoder = cast(ResourceDecoder[Self], LazyResourceDecoder())
 
     def replace(self, **fields: Any) -> Self:
         """Return a new resource instance with the specified fields replaced.
@@ -114,25 +108,6 @@ class APIResource(Struct, metaclass=APIResourceMeta, kw_only=True):
             order="deterministic",
         )
 
-    def as_response(
-        self,
-        *,
-        status: int | None = None,
-        headers: dict | Headers | None = None,
-    ) -> Response:
-        """Converts this resource instance to a response.
-
-        :param status: status code of the response.
-        :param headers: headers to attach to the response.
-        :returns: an instance of :py:attr:`response_class` whose body is this encoded resource.
-        """
-        return self.response_class(
-            self.encode(),
-            status=status,
-            headers=headers,
-            mimetype="application/json",
-        )
-
     def encode(self) -> bytes:
         """Encodes this resource instance into a JSON-compatible representation.
 
@@ -156,7 +131,7 @@ class APIResource(Struct, metaclass=APIResourceMeta, kw_only=True):
         return msgspec.convert(value, cls)
 
     @classmethod
-    def partial[T: type[APIResource]](
+    def partial[T: type[Resource]](
         cls: T,
         *,
         exclude: set[str] | None = None,
@@ -166,16 +141,19 @@ class APIResource(Struct, metaclass=APIResourceMeta, kw_only=True):
 
         This is useful for defining PATCH payloads without having to manually declare a separate
         struct where every field is ``UNSET``-defaulted. The generated struct is a subclass of
-        :py:class:`APIResource` and inherits all its methods.
+        :py:class:`Resource` and inherits all its methods.
 
         :Example:
 
+        >>> class State(Resource):
+        ...     speed: float
+        ...
         >>> StatePartial = State.partial(exclude={"speed"})
         >>> StatePatch = State.partial(exclude={"speed"}, suffix="Patch")
 
         :param exclude: field names to omit entirely from the generated struct.
         :param suffix: suffix of the newly created resource name. Defaults to `Partial`.
-        :returns: a new :py:class:`APIResource` subclass named ``{ClassName}{suffix}`` where every
+        :returns: a new :py:class:`Resource` subclass named ``{ClassName}{suffix}`` where every
             included field has been widened to ``X | None | UnsetType`` with a default of
             :py:data:`msgspec.UNSET`.
         """
@@ -195,14 +173,10 @@ class APIResource(Struct, metaclass=APIResourceMeta, kw_only=True):
         )
 
 
-APIResourceEncodingError = EncodeError
-"""An error occurred while encoding an API resource"""
-APIResourceDecodingError = DecodeError
-"""An error occurred while decoding an API resource"""
+ResourceEncodingError = EncodeError
+"""An error occurred while encoding a resource"""
+ResourceDecodingError = DecodeError
+"""An error occurred while decoding a resource"""
 
 
-__all__ = [
-    "APIResource",
-    "APIResourceEncodingError",
-    "APIResourceDecodingError",
-]
+__all__ = ["Resource", "ResourceEncodingError", "ResourceDecodingError"]

@@ -1,5 +1,9 @@
 # Exclude the Unity project, except its C# scripts and their formatting rules
 exclude: ^src/ui/(?!walker-ui/(Assets/Scripts/.*\.cs|\.editorconfig)$)
+# Install the hooks run before each commit and before each push
+default_install_hook_types:
+  - pre-commit
+  - pre-push
 repos:
   - repo: local
     hooks:
@@ -57,7 +61,7 @@ repos:
       - id: pytest-config
         name: Pytest (config)
         stages:
-          - pre-commit
+          - pre-push
         language: system
         entry: uv run --directory src/config pytest
         files: ^src/config/
@@ -65,13 +69,24 @@ repos:
           - python
         pass_filenames: false
 
+      - id: pytest-core
+        name: Pytest (core)
+        stages:
+          - pre-push
+        language: system
+        entry: uv run --directory src/core pytest
+        files: ^src/core/
+        types:
+          - python
+        pass_filenames: false
+
       - id: pytest-api
         name: Pytest (api)
         stages:
-          - pre-commit
+          - pre-push
         language: system
         entry: uv run --directory src/api pytest
-        files: ^src/(api|config)/
+        files: ^src/(api|config|core)/
         types:
           - python
         pass_filenames: false
@@ -79,10 +94,10 @@ repos:
       - id: pytest-trainer
         name: Pytest (trainer)
         stages:
-          - pre-commit
+          - pre-push
         language: system
         entry: uv run --directory src/trainer pytest
-        files: ^src/(trainer|config)/
+        files: ^src/(trainer|config|core)/
         types:
           - python
         pass_filenames: false

@@ -8,9 +8,9 @@ from loguru import logger
 from quart_schema import ResponseSchemaValidationError, validate_response
 
 from walker.api.http.error import HTTPError
-from walker.api.resources import APIResource
 from walker.api.resources.error import Error
 from walker.api.typing import Route, RouteResponse, RouteResponseValue
+from walker.core.resources import Resource
 
 from ._base import Middleware
 
@@ -36,7 +36,7 @@ def validate(
         type[RouteResponseValue]
         | tuple[
             type[RouteResponseValue],
-            type[APIResource],
+            type[Resource],
         ],
     ],
 ) -> Middleware:

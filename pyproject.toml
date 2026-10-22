@@ -16,11 +16,13 @@ constraint-dependencies = [
     "cupy-cuda13x==14.2.0",
     "keras==3.15.1",
     "torch==2.14.1",
-    "click==8.5.0"
+    "click==8.5.0",
+    "msgspec==0.22.0"
 ]
 
 [tool.uv.workspace]
 members = [
+    "src/core",
     "src/config",
     "src/api",
     "src/trainer"
@@ -36,11 +38,13 @@ explicit = true
 
 [tool.mypy]
 files = [
+    "src/core/src",
     "src/config/src",
     "src/api/src",
     "src/trainer/src"
 ]
 mypy_path = [
+    "src/core/src",
     "src/config/src",
     "src/api/src",
     "src/trainer/src"

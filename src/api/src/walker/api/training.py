@@ -6,7 +6,7 @@ from typing import BinaryIO, Self
 
 from loguru import logger
 
-from walker.api.resources.state import State
+from walker.core.resources.state import State
 
 
 class TrainingStore:

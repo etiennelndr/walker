@@ -13,10 +13,10 @@ from quart_schema.validation import (
 )
 
 from walker.api.http.error import HTTPError
-from walker.api.resources import APIResource
+from walker.api.resources.error import Error
 from walker.api.typing import Route, RouteResponse, RouteResponseValue
+from walker.core.resources import Resource
 
-from ..resources.error import Error
 from ._base import Middleware
 
 
@@ -40,9 +40,9 @@ def request(*middlewares: Middleware) -> Middleware:
 
 def validate(
     *,
-    headers: type[APIResource] | None = None,
-    querystring: type[APIResource] | None = None,
-    data: type[APIResource] | None = None,
+    headers: type[Resource] | None = None,
+    querystring: type[Resource] | None = None,
+    data: type[Resource] | None = None,
     data_source: DataSource = DataSource.JSON,
 ) -> Middleware:
     """Validates requests against defined schemas.
