@@ -11,6 +11,9 @@ indent_size = 4
 indent_style = space
 tab_width = 4
 
+# Line length
+max_line_length = 100
+
 # New line preferences
 end_of_line = crlf
 insert_final_newline = true

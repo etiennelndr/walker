@@ -73,7 +73,8 @@ namespace Agents {
 
         public override void Step() {
             // Choose the next destination point when the agent gets close to the current one
-            if (!_navMeshAgent.pathPending && _navMeshAgent.remainingDistance < config.remainingDistanceTolerance) {
+            if (!_navMeshAgent.pathPending &&
+                _navMeshAgent.remainingDistance < config.remainingDistanceTolerance) {
                 UpdateTarget();
             }
 
@@ -168,18 +169,22 @@ namespace Agents {
             foreach (Transform targetPoint in targetPoints.positions) {
                 Vector3 targetPointPosition = targetPoint.position;
 
+                Color targetPointColor = Color.black;
                 if (targetPointPosition == _currentTargetPoint) {
-                    Debug.DrawRay(targetPointPosition, transform.up * targetPoints.height, Color.green);
+                    targetPointColor = Color.green;
                 }
                 else if (targetPointPosition == _previousTargetPoint) {
-                    Debug.DrawRay(targetPointPosition, transform.up * targetPoints.height, Color.blue);
+                    targetPointColor = Color.blue;
                 }
                 else if (_nextTargetPoints.Contains(targetPointPosition)) {
-                    Debug.DrawRay(targetPointPosition, transform.up * targetPoints.height, Color.yellow);
+                    targetPointColor = Color.yellow;
                 }
-                else {
-                    Debug.DrawRay(targetPointPosition, transform.up * targetPoints.height, Color.black);
-                }
+
+                Debug.DrawRay(
+                    targetPointPosition,
+                    transform.up * targetPoints.height,
+                    targetPointColor
+                );
             }
         }
 
@@ -191,7 +196,8 @@ namespace Agents {
                     // and the point is not hidden by an object,
                     && !Physics.Linecast(targetPointPosition, currentPoint)
                     // and the distance between the two points is more than the required tolerance
-                    && Vector3.Distance(targetPointPosition, currentPoint) >= config.remainingDistanceTolerance
+                    && Vector3.Distance(targetPointPosition, currentPoint) >=
+                    config.remainingDistanceTolerance
                 )
                 .ToList();
         }
