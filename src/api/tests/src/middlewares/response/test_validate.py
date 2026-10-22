@@ -6,12 +6,12 @@ from quart import Blueprint, Quart
 
 from walker.api import middlewares
 from walker.api.http.error import HTTPError
-from walker.api.resources import APIResource
 from walker.api.resources.error import Error
 from walker.api.typing import RouteResponseValue
+from walker.core.resources import Resource
 
 
-class Payload(APIResource):
+class Payload(Resource):
     id: int
     name: str
     elapsed_time: int

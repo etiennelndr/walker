@@ -12,6 +12,8 @@ from werkzeug.datastructures import Headers
 
 from walker.api.resources.error import Error
 
+from .response import make_resource_response
+
 
 def generate_http_error_codes() -> Iterator[str]:
     """Yields unique HTTP error codes indefinitely.
@@ -54,7 +56,7 @@ class _HTTPError(Enum):
         if message is not None:
             value = value.replace(message=message)
 
-        response = value.as_response(headers=headers)
+        response = make_resource_response(value, headers=headers)
         current_app.aborter(response)
 
     def as_dict(self) -> dict[str, Any]:
@@ -73,7 +75,7 @@ class _HTTPError(Enum):
 
         :param headers: headers to attach to the response.
         """
-        return self.value.as_response(headers=headers)
+        return make_resource_response(self.value, headers=headers)
 
     @property
     def status(self) -> int:

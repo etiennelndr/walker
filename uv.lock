@@ -6,12 +6,14 @@ requires-python = "==3.14.*"
 members = [
     "walker-api",
     "walker-config",
+    "walker-core",
     "walker-trainer",
 ]
 constraints = [
     { name = "click", specifier = "==8.5.0" },
     { name = "cupy-cuda13x", specifier = "==14.2.0" },
     { name = "keras", specifier = "==3.15.1" },
+    { name = "msgspec", specifier = "==0.22.0" },
     { name = "torch", specifier = "==2.14.1", index = "https://download.pytorch.org/whl/cu132" },
 ]
 
@@ -2591,6 +2593,7 @@ dependencies = [
     { name = "quart-schema" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "walker-config" },
+    { name = "walker-core" },
 ]
 
 [package.metadata]
@@ -2599,11 +2602,12 @@ requires-dist = [
     { name = "confuse", specifier = "==2.3.0" },
     { name = "cupy-cuda13x", extras = ["ctk"] },
     { name = "loguru", specifier = "==0.7.3" },
-    { name = "msgspec", specifier = "==0.22.0" },
+    { name = "msgspec" },
     { name = "quart", specifier = "==0.23.1" },
     { name = "quart-schema", specifier = "==0.25.0" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.54.0" },
     { name = "walker-config", editable = "src/config" },
+    { name = "walker-core", editable = "src/core" },
 ]
 
 [[package]]
@@ -2615,6 +2619,16 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "confuse", specifier = "==2.3.0" }]
+
+[[package]]
+name = "walker-core"
+source = { editable = "src/core" }
+dependencies = [
+    { name = "msgspec" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "msgspec" }]
 
 [[package]]
 name = "walker-trainer"

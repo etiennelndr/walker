@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from tests.data import STATE
-from walker.api.resources.state import State
 from walker.api.training import TrainingStore
+from walker.core.resources.state import State
 
 
 async def test_add(training_path: Path) -> None:

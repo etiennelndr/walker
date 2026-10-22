@@ -8,8 +8,8 @@ from quart import Blueprint, current_app
 import walker.api.attrs.config as wac
 import walker.config as wc
 from walker.api import attrs, middlewares
-from walker.api.resources.state import State
 from walker.api.training import TrainingStore
+from walker.core.resources.state import State
 
 states_bp: Final = Blueprint("states", __name__, url_prefix="/states")
 

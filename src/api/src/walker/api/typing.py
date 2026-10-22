@@ -10,12 +10,12 @@ from quart_schema.mixins import WebsocketMixin
 from werkzeug import Response as WerkzeugResponse
 from werkzeug.datastructures import Headers
 
-from walker.api.resources import APIResource
+from walker.core.resources import Resource
 
 type RouteResponseValue = (
     Response
     | WerkzeugResponse
-    | APIResource
+    | Resource
     | bytes
     | str
     | Mapping[str, Any]

@@ -7,9 +7,9 @@ from loguru import logger
 from quart import Blueprint
 
 from walker.api import middlewares
-from walker.api.resources.state import State
-from walker.api.resources.vector import Vector3
 from walker.api.websocket import websocket
+from walker.core.resources.state import State
+from walker.core.resources.vector import Vector3
 
 walks_bp: Final = Blueprint("walks", __name__, url_prefix="/walks")
 

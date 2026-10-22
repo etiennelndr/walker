@@ -20,10 +20,11 @@ from quart_schema.validation import QUART_SCHEMA_RESPONSE_ATTRIBUTE, ResponseHea
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from walker.api.http.error import HTTPError
+from walker.api.http.response import make_resource_response
 from walker.api.middlewares import Middleware
-from walker.api.resources import APIResource, APIResourceDecodingError
 from walker.api.route import pack_route_response, unpack_route_response
 from walker.api.typing import Route, RouteResponse, RouteResponseValue, Websocket
+from walker.core.resources import Resource, ResourceDecodingError
 
 from ._utils import copy_function
 
@@ -37,8 +38,8 @@ send_as_unpatched = copy_function(quart_schema.mixins.WebsocketMixin.send_as)
 def patchify() -> None:  # noqa: PLR0915
     """Patches QuartSchema functions for improved integration.
 
-    Replaces QuartSchema's `model_load` implementation to use APIResource's native decoder
-    when handling APIResource subclasses, significantly improving performance. Falls back
+    Replaces QuartSchema's `model_load` implementation to use Resource's native decoder
+    when handling Resource subclasses, significantly improving performance. Falls back
     to the original QuartSchema implementation for all other model types.
     """
 
@@ -58,23 +59,23 @@ def patchify() -> None:  # noqa: PLR0915
         :param decamelize: whether to convert keys from camelCase to snake_case.
         :param preference: preferred library for model loading.
         :returns: validated and loaded model instance.
-        :raises exception_class: when validation fails for non-APIResource models.
-        :raises HTTPError: when validation fails for APIResource models or when an APIResource of
-            the wrong type is provided.
+        :raises exception_class: when validation fails for non-Resource models.
+        :raises HTTPError: when validation fails for Resource models or when a Resource of the
+            wrong type is provided.
         """
-        if issubclass(model_class, APIResource):
+        if issubclass(model_class, Resource):
             if isinstance(data, model_class):
                 return data
-            if isinstance(data, APIResource):
+            if isinstance(data, Resource):
                 logger.error(
-                    f"An API resource of the wrong type has been provided to 'model_load'"
+                    f"A resource of the wrong type has been provided to 'model_load'"
                     f" (got '{type(data).__name__}' instead of '{model_class.__name__}')"
                 )
                 HTTPError.INTERNAL_ERROR.abort()
 
             try:
                 return model_class.decode(data)
-            except APIResourceDecodingError as err:
+            except ResourceDecodingError as err:
                 raise exception_class(err)
 
         if issubclass(model_class, str | bytes) and not isinstance(data, model_class):
@@ -105,7 +106,7 @@ def patchify() -> None:  # noqa: PLR0915
         preference: str | None = None,
         pydantic_kwargs: PydanticDumpOptions | None = None,
     ) -> Response | dict | list:
-        """Dumps data with optimized encoding for API resources.
+        """Dumps data with optimized encoding for resources.
 
         :param raw: the response value to serialize.
         :param camelize: whether to convert keys to camelCase.
@@ -114,8 +115,8 @@ def patchify() -> None:  # noqa: PLR0915
         :param pydantic_kwargs: additional options for Pydantic model dumping.
         :returns: a :py:class:`~quart.Response` instance or a JSON-compatible dictionary or list.
         """
-        if isinstance(raw, APIResource):
-            return raw.as_response()
+        if isinstance(raw, Resource):
+            return make_resource_response(raw)
 
         return model_dump_unpatched(
             raw,
@@ -139,7 +140,7 @@ def patchify() -> None:  # noqa: PLR0915
         """Generates a JSON schema for a model class with proper MsgSpec component handling.
 
         Extends the base model schema generation to correctly include component definitions in the
-        schema's `$defs` key when working with APIResource models, making the OpenAPI
+        schema's `$defs` key when working with Resource models, making the OpenAPI
         `components.schemas` section properly populated.
 
         :param model_class: the model class for which to generate the JSON schema.
@@ -147,7 +148,7 @@ def patchify() -> None:  # noqa: PLR0915
         :param schema_mode: the mode for schema generation, either "validation" or "serialization".
         :returns: a dictionary containing the JSON schema with embedded component definitions.
         """
-        if issubclass(model_class, APIResource | str | bytes):
+        if issubclass(model_class, Resource | str | bytes):
             return msgspec.json.schema(
                 model_class, ref_template=quart_schema.conversion.MSGSPEC_REF_TEMPLATE
             )
@@ -227,7 +228,7 @@ def patchify() -> None:  # noqa: PLR0915
     async def send_as_patched(self: Websocket, value: Any, model_class: type[Model]) -> None:
         """Validates a value against a model class and sends it through the websocket.
 
-        The patched `model_dump` dumps API resources into a response, which can't be sent as JSON:
+        The patched `model_dump` dumps resources into a response, which can't be sent as JSON:
         the body of this response, already encoded in JSON, is sent as is instead.
 
         :param value: the value to send.
