@@ -9,6 +9,7 @@ members = [
     "walker-trainer",
 ]
 constraints = [
+    { name = "click", specifier = "==8.5.0" },
     { name = "cupy-cuda13x", specifier = "==14.2.0" },
     { name = "keras", specifier = "==3.15.1" },
     { name = "torch", specifier = "==2.14.1", index = "https://download.pytorch.org/whl/cu132" },
@@ -2623,7 +2624,6 @@ dependencies = [
     { name = "keras" },
     { name = "prefect" },
     { name = "torch" },
-    { name = "typer" },
     { name = "walker-config" },
 ]
 
@@ -2633,7 +2633,6 @@ requires-dist = [
     { name = "keras" },
     { name = "prefect", specifier = "==3.8.8" },
     { name = "torch", index = "https://download.pytorch.org/whl/cu132" },
-    { name = "typer", specifier = "==0.27.3" },
     { name = "walker-config", editable = "src/config" },
 ]
 
