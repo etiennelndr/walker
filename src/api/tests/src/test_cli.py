@@ -5,7 +5,7 @@ from click.testing import CliRunner
 from quart import Blueprint
 
 from walker.api import cli, get_package_version
-from walker.api.bp.states import states_bp
+from walker.api.bp.records import records_bp
 from walker.api.bp.walks import walks_bp
 
 
@@ -34,7 +34,7 @@ def test_help() -> None:
         ),
         pytest.param(
             "collect",
-            "Serves the collection of training states on an ASGI server.",
+            "Serves the collection of training records on an ASGI server.",
         ),
     ],
 )
@@ -51,7 +51,7 @@ def test_command_help(command: str, command_help: str) -> None:
     ("command", "blueprint"),
     [
         pytest.param("serve", walks_bp),
-        pytest.param("collect", states_bp),
+        pytest.param("collect", records_bp),
     ],
 )
 def test_command(monkeypatch: pytest.MonkeyPatch, command: str, blueprint: Blueprint) -> None:

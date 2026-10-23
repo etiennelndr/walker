@@ -7,11 +7,12 @@ using Api.Models;
 using UnityEngine;
 
 using Ray = Api.Models.Ray;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Agents {
     [Serializable]
     public class RaysConfig {
-        [Min(1)] public int count = 8;
+        [Min(1)] public int count = 32;
         [Min(0.5f)] public float maxDistance = 10f;
         public bool isVisible = true;
 
@@ -62,7 +63,18 @@ namespace Agents {
             walker.enabled = false;
         }
 
-        protected State CollectState() {
+        protected virtual Record CollectRecord() {
+            return new Record {
+                session = Session.Id,
+                walker = walker.name,
+                scene = walker.gameObject.scene.name,
+                frame = Time.frameCount,
+                time = Time.time,
+                observation = CollectObservation()
+            };
+        }
+
+        protected Observation CollectObservation() {
             RaysConfig rays = config.rays;
             Transform walkerTransform = walker.transform;
             Vector3 origin = walkerTransform.position;
@@ -76,7 +88,7 @@ namespace Agents {
                 collisions.Add(rayCollision);
             }
 
-            return new State { collisions = collisions, speed = Velocity };
+            return new Observation { collisions = collisions, velocity = Velocity };
         }
 
         private RayCollision CastRay(Vector3 origin, Vector3 direction) {

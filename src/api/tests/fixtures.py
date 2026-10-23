@@ -10,7 +10,7 @@ from quart import Blueprint, Quart
 
 from tests.data import CONFIG_FOLDER
 from walker.api.app import create_app
-from walker.api.bp.states import states_bp
+from walker.api.bp.records import records_bp
 from walker.api.bp.walks import walks_bp
 
 
@@ -21,8 +21,8 @@ def environment() -> str:
 
 @pytest.fixture
 def training_path(tmp_path: Path) -> Path:
-    """Path of the file in which training states are stored."""
-    return tmp_path / "training_states.jsonl"
+    """Path of the file in which training records are stored."""
+    return tmp_path / "training_records.jsonl"
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ async def walks_app(environment_variables: None) -> AsyncGenerator[Quart]:
 
 
 @pytest_asyncio.fixture
-async def states_app(environment_variables: None) -> AsyncGenerator[Quart]:
+async def records_app(environment_variables: None) -> AsyncGenerator[Quart]:
     """The application run by the `collect` command."""
-    async with serve_app(states_bp) as app:
+    async with serve_app(records_bp) as app:
         yield app

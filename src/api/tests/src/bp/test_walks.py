@@ -5,15 +5,15 @@ from typing import Any
 import pytest
 from quart import Quart
 
-from tests.data import STATE
+from tests.data import OBSERVATION
 from walker.api.http.error import HTTPError
 
 
 @pytest.mark.parametrize(
-    ("state", "expected_response_status_code", "expected_response"),
+    ("observation", "expected_response_status_code", "expected_response"),
     [
         pytest.param(
-            STATE,
+            OBSERVATION,
             HTTPStatus.OK,
             {"x": 0.0, "y": 0.0, "z": 0.0},
             id="200",
@@ -25,13 +25,13 @@ from walker.api.http.error import HTTPError
             id="400-empty",
         ),
         pytest.param(
-            {"collisions": STATE["collisions"]},
+            {"collisions": OBSERVATION["collisions"]},
             HTTPError.INVALID_JSON.status,
             HTTPError.INVALID_JSON.as_dict(),
             id="400-missing-fields",
         ),
         pytest.param(
-            STATE | {"speed": {"x": "fast", "y": 0.0, "z": 0.0}},
+            OBSERVATION | {"velocity": {"x": "fast", "y": 0.0, "z": 0.0}},
             HTTPError.INVALID_JSON.status,
             HTTPError.INVALID_JSON.as_dict(),
             id="400-field-type",
@@ -40,12 +40,12 @@ from walker.api.http.error import HTTPError
 )
 async def test_generate_walk(
     walks_app: Quart,
-    state: Mapping[str, Any],
+    observation: Mapping[str, Any],
     expected_response_status_code: int,
     expected_response: Mapping[str, Any],
 ) -> None:
     async with walks_app.test_client() as test_client:
-        response = await test_client.post("/walks", json=state)
+        response = await test_client.post("/walks", json=observation)
 
     assert response.status_code == expected_response_status_code
     assert await response.get_json() == expected_response
@@ -56,6 +56,6 @@ async def test_generate_walks(walks_app: Quart) -> None:
 
     async with test_client.websocket("/walks") as test_websocket:
         for _ in range(2):
-            await test_websocket.send_json(STATE)
+            await test_websocket.send_json(OBSERVATION)
 
             assert await test_websocket.receive_json() == {"x": 0.0, "y": 0.0, "z": 0.0}

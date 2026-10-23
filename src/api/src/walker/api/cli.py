@@ -11,7 +11,7 @@ from quart import Blueprint
 from . import get_package_name, get_package_version
 from .app import create_app
 from .asgi import ASGIServerHandler, create_asgi_server, serve_asgi_server_handlers
-from .bp.states import states_bp
+from .bp.records import records_bp
 from .bp.walks import walks_bp
 
 
@@ -42,8 +42,8 @@ def serve() -> None:
 
 @cli.command(name="collect")
 def collect() -> None:
-    """Serves the collection of training states on an ASGI server."""
-    _serve(states_bp)
+    """Serves the collection of training records on an ASGI server."""
+    _serve(records_bp)
 
 
 def run(argv: Sequence[str] | None = None, **opts: Any) -> None:

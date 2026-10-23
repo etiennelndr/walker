@@ -145,11 +145,12 @@ class Resource(Struct, metaclass=ResourceMeta, kw_only=True):
 
         :Example:
 
-        >>> class State(Resource):
+        >>> class Settings(Resource):
+        ...     name: str
         ...     speed: float
         ...
-        >>> StatePartial = State.partial(exclude={"speed"})
-        >>> StatePatch = State.partial(exclude={"speed"}, suffix="Patch")
+        >>> SettingsPartial = Settings.partial(exclude={"name"})
+        >>> SettingsPatch = Settings.partial(exclude={"name"}, suffix="Patch")
 
         :param exclude: field names to omit entirely from the generated struct.
         :param suffix: suffix of the newly created resource name. Defaults to `Partial`.

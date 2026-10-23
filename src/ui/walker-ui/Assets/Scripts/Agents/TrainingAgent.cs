@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 using Random = System.Random;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Agents {
     [Serializable]
@@ -40,7 +41,7 @@ namespace Agents {
         // Direction in which the agent enters its current target, or zero if unknown (e.g. for its
         // first target)
         private Vector3 _incomingDirection;
-        private bool _isSendingState;
+        private bool _isSendingRecord;
         private List<Vector3> _nextTargetPoints;
         private Vector3 _previousTargetPoint;
 
@@ -83,7 +84,7 @@ namespace Agents {
             }
 
             if (Time.frameCount % config.rays.sendEveryNFrames == 0) {
-                SendState();
+                SendRecord();
             }
         }
 
@@ -103,24 +104,31 @@ namespace Agents {
             }
         }
 
-        private async void SendState() {
-            if (_isSendingState) {
+        protected override Record CollectRecord() {
+            Record record = base.CollectRecord();
+            record.desiredVelocity = _navMeshAgent.desiredVelocity;
+            record.target = _currentTargetPoint;
+            return record;
+        }
+
+        private async void SendRecord() {
+            if (_isSendingRecord) {
                 return;
             }
 
             try {
-                State state = CollectState();
-                _isSendingState = true;
-                await apiClient.CreateState(state);
+                Record record = CollectRecord();
+                _isSendingRecord = true;
+                await apiClient.CreateRecord(record);
             }
             catch (ApiException e) {
                 Disable(e.Message);
             }
             catch (Exception e) {
-                Disable($"Unexpected error while sending the state: {e.Message}");
+                Disable($"Unexpected error while sending the record: {e.Message}");
             }
             finally {
-                _isSendingState = false;
+                _isSendingRecord = false;
             }
         }
 
