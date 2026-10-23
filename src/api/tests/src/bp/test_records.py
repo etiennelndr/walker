@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 from quart import Quart
 
+from tests.app import serve_app
 from tests.data import TRAINING_RECORD
-from tests.fixtures import serve_app
 from walker.api.bp.records import records_bp
 from walker.api.http.error import HTTPError
 

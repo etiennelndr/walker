@@ -1,15 +1,14 @@
 """Internal Pytest fixtures."""
 
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pytest
 import pytest_asyncio
-from quart import Blueprint, Quart
+from quart import Quart
 
+from tests.app import serve_app
 from tests.data import CONFIG_FOLDER
-from walker.api.app import create_app
 from walker.api.bp.records import records_bp
 from walker.api.bp.walks import walks_bp
 
@@ -35,18 +34,6 @@ def environment_variables(
     monkeypatch.setenv("WALKERAPIDIR", str(CONFIG_FOLDER))
     monkeypatch.setenv("WALKER_API_ENV", environment)
     monkeypatch.setenv("WALKER_API_TRAINING__PATH", str(training_path))
-
-
-@asynccontextmanager
-async def serve_app(*blueprints: Blueprint) -> AsyncGenerator[Quart]:
-    """Creates an application made of the given blueprints, and serves it."""
-    app = create_app(blueprints)
-
-    await app.startup()
-    try:
-        yield app
-    finally:
-        await app.shutdown()
 
 
 @pytest_asyncio.fixture
