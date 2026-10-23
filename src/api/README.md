@@ -21,10 +21,10 @@ Any value of the configuration can be overridden with an environment variable pr
 
 Then, from this directory, run one of the following commands:
 
-| Command                     | Description                                           |
-|-----------------------------|-------------------------------------------------------|
-| `uv run walker-api serve`   | Serves the generation of walker movements (`/walks`). |
-| `uv run walker-api collect` | Serves the collection of training states (`/states`). |
+| Command                     | Description                                             |
+|-----------------------------|---------------------------------------------------------|
+| `uv run walker-api serve`   | Serves the generation of walker movements (`/walks`).   |
+| `uv run walker-api collect` | Serves the collection of training records (`/records`). |
 
-Collected training states are appended to the JSON Lines file set in the `training.path`
-configuration value, one state per line.
+Collected training records are appended to the JSON Lines file set in the `training.path`
+configuration value, one record per line.

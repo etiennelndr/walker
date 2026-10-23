@@ -15,7 +15,7 @@ class App(Attrs):
     OPENAPI = auto()
     """OpenAPI specification configuration"""
     TRAINING = auto()
-    """Training states configuration"""
+    """Training observations configuration"""
 
 
 class ASGI(Attrs):
@@ -64,10 +64,10 @@ class OpenAPI(Attrs):
 
 
 class Training(Attrs):
-    """Training states configuration keys."""
+    """Training records configuration keys."""
 
     PATH = auto()
-    """The file in which collected training states are stored"""
+    """The file in which collected training records are stored"""
 
 
 __all__ = [

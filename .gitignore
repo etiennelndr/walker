@@ -221,3 +221,6 @@ __marimo__/
 
 # MCP configuration, which points to servers local to each machine (e.g. Rider)
 .mcp.json
+
+# Training records collected by the API, wherever it runs from
+*.jsonl

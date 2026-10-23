@@ -3,13 +3,13 @@ from .ray import RayCollision
 from .vector import Vector3
 
 
-class State(Resource):
-    """Representation of a walker state."""
+class Observation(Resource):
+    """Representation of what a walker observes at a given time."""
 
     collisions: list[RayCollision]
     """Collisions between the rays cast by the walker and its surroundings"""
-    speed: Vector3
-    """Current speed of the walker"""
+    velocity: Vector3
+    """Current velocity of the walker"""
 
 
-__all__ = ["State"]
+__all__ = ["Observation"]

@@ -8,7 +8,7 @@ from quart import Blueprint
 
 from walker.api import middlewares
 from walker.api.websocket import websocket
-from walker.core.resources.state import State
+from walker.core.resources.observation import Observation
 from walker.core.resources.vector import Vector3
 
 walks_bp: Final = Blueprint("walks", __name__, url_prefix="/walks")
@@ -16,7 +16,7 @@ walks_bp: Final = Blueprint("walks", __name__, url_prefix="/walks")
 
 @walks_bp.post("")
 @middlewares.request(
-    middlewares.req.validate(data=State),
+    middlewares.req.validate(data=Observation),
 )
 @middlewares.response(
     middlewares.res.validate(
@@ -25,18 +25,18 @@ walks_bp: Final = Blueprint("walks", __name__, url_prefix="/walks")
         }
     ),
 )
-async def generate_walk(data: State) -> Vector3:
-    """Generates the movement a walker has to perform from its state."""
+async def generate_walk(data: Observation) -> Vector3:
+    """Generates the movement a walker has to perform from its observation."""
     logger.debug(data.as_dict())
     return Vector3(x=0, y=0, z=0)
 
 
 @walks_bp.websocket("")
 async def generate_walks() -> None:
-    """Generates the movement a walker has to perform for each state it sends."""
+    """Generates the movement a walker has to perform for each observation it sends."""
     while True:
-        state = await websocket.receive_as(State)
-        logger.debug(state.as_dict())
+        observation = await websocket.receive_as(Observation)
+        logger.debug(observation.as_dict())
         await websocket.send_as({"x": 0, "y": 0, "z": 0}, Vector3)
 
 

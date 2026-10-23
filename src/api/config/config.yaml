@@ -8,7 +8,7 @@ dev:
   openapi:
     endpoint: '/openapi.json'
   training:
-    path: training_states.jsonl
+    path: training_records.jsonl
 
 prod:
   asgi:

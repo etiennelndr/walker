@@ -1,4 +1,4 @@
-"""Blueprint to collect training states."""
+"""Blueprint to collect training records."""
 
 from http import HTTPStatus
 from typing import Final
@@ -9,31 +9,31 @@ import walker.api.attrs.config as wac
 import walker.config as wc
 from walker.api import attrs, middlewares
 from walker.api.training import TrainingStore
-from walker.core.resources.state import State
+from walker.core.resources.record import Record
 
-states_bp: Final = Blueprint("states", __name__, url_prefix="/states")
+records_bp: Final = Blueprint("records", __name__, url_prefix="/records")
 
 
-@states_bp.before_app_serving
+@records_bp.before_app_serving
 async def open_training_store() -> None:
-    """Opens the storage of the collected training states.
+    """Opens the storage of the collected training records.
 
     Runs automatically before serving starts.
 
-    :raises RuntimeError: if no path is configured for the training states.
+    :raises RuntimeError: if no path is configured for the training records.
     """
     path = wc.app.get(wac.App.TRAINING, wac.Training.PATH)
     if path is None:
-        raise RuntimeError("A path must be configured to collect training states")
+        raise RuntimeError("A path must be configured to collect training records")
 
     training_store = TrainingStore(path)
     await training_store.open()
     current_app.extensions[attrs.Extensions.TRAINING_STORE] = training_store
 
 
-@states_bp.after_app_serving
+@records_bp.after_app_serving
 async def close_training_store() -> None:
-    """Closes the storage of the collected training states.
+    """Closes the storage of the collected training records.
 
     Runs automatically after serving ends.
     """
@@ -41,25 +41,25 @@ async def close_training_store() -> None:
     await training_store.close()
 
 
-@states_bp.post("")
+@records_bp.post("")
 @middlewares.request(
-    middlewares.req.validate(data=State),
+    middlewares.req.validate(data=Record),
 )
 @middlewares.response(
     middlewares.res.validate(
         {
-            HTTPStatus.CREATED: State,
+            HTTPStatus.CREATED: Record,
         }
     ),
 )
-async def create_state(data: State) -> tuple[State, int]:
-    """Saves a training state.
+async def create_record(data: Record) -> tuple[Record, int]:
+    """Saves a training record.
 
-    :returns: the saved training state.
+    :returns: the saved training record.
     """
     training_store: TrainingStore = current_app.extensions[attrs.Extensions.TRAINING_STORE]
     training_store.add(data)
     return data, HTTPStatus.CREATED
 
 
-__all__ = ["states_bp"]
+__all__ = ["records_bp"]

@@ -13,9 +13,8 @@ namespace Api {
             _baseUrl = baseUrl.TrimEnd('/');
         }
 
-        public async Awaitable<State> CreateState(State state) {
-            string responseBody = await Post("/states", state.Encode());
-            return State.Decode(responseBody);
+        public async Awaitable CreateRecord(Record record) {
+            await Post("/records", record.Encode());
         }
 
         // Sends a JSON body to the API and returns the body of the response. Throws an ApiException

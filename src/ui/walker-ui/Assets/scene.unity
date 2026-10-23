@@ -966,7 +966,7 @@ MonoBehaviour:
   trainingAgentConfig:
     serverUrl: http://127.0.0.1:8000
     rays:
-      count: 8
+      count: 32
       maxDistance: 10
       isVisible: 1
       sendEveryNFrames: 1
@@ -986,7 +986,7 @@ MonoBehaviour:
   patrollingAgentConfig:
     serverUrl: http://127.0.0.1:8000
     rays:
-      count: 8
+      count: 32
       maxDistance: 10
       isVisible: 1
       sendEveryNFrames: 1
