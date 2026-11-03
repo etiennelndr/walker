@@ -19,6 +19,8 @@ class Record(Resource, omit_defaults=True):
     """Identifier of the walker, unique within a session"""
     scene: str
     """Name of the scene in which the walker moves"""
+    map_seed: int
+    """Seed from which the map of the scene was generated"""
     frame: int
     """Number of the frame at which the observation was collected"""
     time: float
