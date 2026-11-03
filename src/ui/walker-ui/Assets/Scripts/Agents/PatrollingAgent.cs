@@ -8,7 +8,8 @@ namespace Agents {
     }
 
     public class PatrollingAgent : BaseAgent<PatrollingAgentConfig> {
-        public PatrollingAgent(PatrollingAgentConfig config, Walker walker) : base(config, walker) { }
+        public PatrollingAgent(PatrollingAgentConfig config, Walker walker) : base(config, walker) {
+        }
 
         protected override Vector3 Velocity => Vector3.zero;
 

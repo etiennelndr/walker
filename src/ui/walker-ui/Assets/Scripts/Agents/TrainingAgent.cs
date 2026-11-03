@@ -8,33 +8,42 @@ using Api.Models;
 using UnityEngine;
 using UnityEngine.AI;
 
+using Object = UnityEngine.Object;
 using Random = System.Random;
 using Vector3 = UnityEngine.Vector3;
 
 namespace Agents {
     [Serializable]
-    public class TargetPoints {
-        public Transform[] positions;
-
+    public class TargetPointsConfig {
+        [Tooltip("Whether the target points are drawn in the Scene view")]
         public bool isVisible;
 
-        [Min(0.5f)] public float height = 2.5f;
+        [Min(0.5f)]
+        [Tooltip("Height of the line drawn at each target point, in Unity units")]
+        public float height = 2.5f;
     }
 
     [Serializable]
     public class TrainingAgentConfig : BaseAgentConfig {
-        public TargetPoints targetPoints;
-        [Min(0.5f)] public float remainingDistanceTolerance = 2f;
+        [Tooltip("Settings of the drawing of the target points")]
+        public TargetPointsConfig targetPoints;
 
-        // Maximum angle between the directions in which the agent enters and leaves a target: beyond
-        // it, the agent is considered as turning back
-        [Range(0, 180)] public int maxTurnAngle = 135;
+        [Min(0.5f)]
+        [Tooltip("Distance to the current target at which the walker picks the next one")]
+        public float remainingDistanceTolerance = 2f;
+
+        [Range(0, 180)]
+        [Tooltip("Largest turn at a target, in degrees, beyond which the walker turns back")]
+        public int maxTurnAngle = 135;
     }
 
     public class TrainingAgent : BaseAgent<TrainingAgentConfig> {
         private readonly NavMeshAgent _navMeshAgent;
 
-        private readonly Random _rnd = new();
+        // Own generator, so that the draws of a walker do not depend on the other ones
+        private readonly Random _rnd;
+
+        private readonly TargetPoints _targetPoints;
 
         private Vector3 _currentTargetPoint;
 
@@ -47,27 +56,54 @@ namespace Agents {
 
         public TrainingAgent(TrainingAgentConfig config, Walker walker) : base(config, walker) {
             _navMeshAgent = walker.GetComponent<NavMeshAgent>();
+            _targetPoints = Object.FindAnyObjectByType<TargetPoints>();
+
+            _rnd = new Random(UnityEngine.Random.Range(1, int.MaxValue));
         }
 
         protected override Vector3 Velocity => _navMeshAgent.velocity;
-
-        private IEnumerable<Vector3> TargetPointPositions =>
-            config.targetPoints.positions.Select(targetPoint => targetPoint.position);
 
         public override void Init() {
             // Disabling auto-braking allows for continuous movement between points (i.e., the agent
             // doesn't slow down as it approaches a destination point).
             _navMeshAgent.autoBraking = false;
+            // Disabling obstacle avoidance lets walkers pass through each other, since their rays
+            // ignore them. Other walkers thus never change the trajectory of a walker.
+            _navMeshAgent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
 
-            // Returns if there are not enough points to move from one to another
-            if (config.targetPoints.positions.Length < 2) {
-                Disable("At least two target points must be configured");
+            // Without it, the records would lack the seed of the map
+            if (mapGenerator == null) {
+                Disable("A MapGenerator component must be added to the scene");
                 return;
             }
 
-            // Start from the position of the walker, without any incoming direction: the first target
-            // may be in any direction
-            _currentTargetPoint = walker.transform.position;
+            if (_targetPoints == null) {
+                Disable("A TargetPoints component must be added to the scene");
+                return;
+            }
+
+            if (_targetPoints.Positions.Count() < 2) {
+                Disable(
+                    "At least two target points must be added as children of" +
+                    $" '{_targetPoints.name}'"
+                );
+                return;
+            }
+
+            // Start from a random target point, which lies on a street and thus on the NavMesh
+            Vector3 startPoint =
+                _targetPoints.Positions.ElementAt(_rnd.Next(0, _targetPoints.Positions.Count()));
+            walker.transform.position = startPoint;
+
+            // Enable the agent only on its start point, so that it attaches to the NavMesh there
+            _navMeshAgent.enabled = true;
+            if (!_navMeshAgent.isOnNavMesh) {
+                Disable($"Could not move the walker to its start point {startPoint}");
+                return;
+            }
+
+            // Without any incoming direction, the first target may be in any direction
+            _currentTargetPoint = startPoint;
             _previousTargetPoint = _currentTargetPoint;
             UpdateTarget();
         }
@@ -91,7 +127,7 @@ namespace Agents {
         protected override void Enable(string reason) {
             base.Enable(reason);
 
-            if (_navMeshAgent) {
+            if (_navMeshAgent.isOnNavMesh) {
                 _navMeshAgent.isStopped = false;
             }
         }
@@ -99,7 +135,7 @@ namespace Agents {
         protected override void Disable(string reason) {
             base.Disable(reason);
 
-            if (_navMeshAgent) {
+            if (_navMeshAgent.isOnNavMesh) {
                 _navMeshAgent.isStopped = true;
             }
         }
@@ -136,7 +172,7 @@ namespace Agents {
             // Retrieve the points the agent may go to from its current target
             List<Vector3> candidatePoints = GetCandidatePoints();
             // Randomly select the new target point from the candidates
-            Vector3 newTargetPoint = candidatePoints[_rnd.Next(candidatePoints.Count)];
+            Vector3 newTargetPoint = candidatePoints[_rnd.Next(0, candidatePoints.Count)];
             // Set the agent to go to the currently selected target
             _navMeshAgent.SetDestination(newTargetPoint);
             // Save the direction in which the agent will enter the new target
@@ -148,8 +184,8 @@ namespace Agents {
             _nextTargetPoints = GetCandidatePoints();
         }
 
-        // Returns the points the agent may go to from its current target, relaxing the criteria one at
-        // a time until at least one point remains:
+        // Returns the points the agent may go to from its current target, relaxing the criteria one
+        // at a time until at least one point remains:
         // 1. the visible points reachable without turning back, except the previous target;
         // 2. the visible points (e.g. at a dead end, where the agent has to turn back);
         // 3. any point but the current target.
@@ -168,15 +204,12 @@ namespace Agents {
                 return visiblePoints;
             }
 
-            return TargetPointPositions.Where(point => point != _currentTargetPoint).ToList();
+            return _targetPoints.Positions.Where(point => point != _currentTargetPoint).ToList();
         }
 
         private void DrawTargetPoints() {
-            TargetPoints targetPoints = config.targetPoints;
             Transform transform = walker.transform;
-            foreach (Transform targetPoint in targetPoints.positions) {
-                Vector3 targetPointPosition = targetPoint.position;
-
+            foreach (Vector3 targetPointPosition in _targetPoints.Positions) {
                 Color targetPointColor = Color.black;
                 if (targetPointPosition == _currentTargetPoint) {
                     targetPointColor = Color.green;
@@ -190,19 +223,19 @@ namespace Agents {
 
                 Debug.DrawRay(
                     targetPointPosition,
-                    transform.up * targetPoints.height,
+                    transform.up * config.targetPoints.height,
                     targetPointColor
                 );
             }
         }
 
         private List<Vector3> GetVisiblePoints(Vector3 currentPoint) {
-            return TargetPointPositions
+            return _targetPoints.Positions
                 .Where(targetPointPosition =>
                     // Keep the point if it is not the current point itself,
                     targetPointPosition != currentPoint
                     // and the point is not hidden by an object,
-                    && !Physics.Linecast(targetPointPosition, currentPoint)
+                    && !Physics.Linecast(targetPointPosition, currentPoint, obstacleLayers)
                     // and the distance between the two points is more than the required tolerance
                     && Vector3.Distance(targetPointPosition, currentPoint) >=
                     config.remainingDistanceTolerance
@@ -210,9 +243,9 @@ namespace Agents {
                 .ToList();
         }
 
-        // Whether the agent turns back to go from its current target to a point, i.e. the angle between
-        // the directions in which it enters and leaves the current target exceeds the maximum turn
-        // angle (never true if either direction is unknown, the angle being then zero)
+        // Whether the agent turns back to go from its current target to a point, i.e. the angle
+        // between the directions in which it enters and leaves the current target exceeds the
+        // maximum turn angle (never true if either direction is unknown, the angle being then zero)
         private bool IsTurningBack(Vector3 point) {
             Vector3 outgoingDirection = GetOutgoingDirection(_currentTargetPoint, point);
             return Vector3.Angle(_incomingDirection, outgoingDirection) > config.maxTurnAngle;
@@ -230,8 +263,8 @@ namespace Agents {
             return corners.Length < 2 ? Vector3.zero : corners[1] - corners[0];
         }
 
-        // Returns the corners of the NavMesh path between two points (i.e. the points where it turns,
-        // including both ends), or an empty array if there is no complete path
+        // Returns the corners of the NavMesh path between two points (i.e. the points where it
+        // turns, including both ends), or an empty array if there is no complete path
         private static Vector3[] GetPathCorners(Vector3 from, Vector3 to) {
             NavMeshPath path = new();
             bool isFound = NavMesh.CalculatePath(from, to, NavMesh.AllAreas, path);

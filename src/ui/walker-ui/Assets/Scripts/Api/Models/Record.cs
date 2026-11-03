@@ -5,6 +5,7 @@ namespace Api.Models {
         public string session;
         public string walker;
         public string scene;
+        public int mapSeed;
         public int frame;
         public float time;
         public Observation observation;

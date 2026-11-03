@@ -9,12 +9,15 @@ public enum WalkerBehaviour {
 
 public class Walker : MonoBehaviour {
     [SerializeField]
+    [Tooltip("Behaviour of the walker, which also selects the settings shown below")]
     private WalkerBehaviour behaviour;
 
     [SerializeField]
+    [Tooltip("Settings of the Training behaviour")]
     private TrainingAgentConfig trainingAgentConfig;
 
     [SerializeField]
+    [Tooltip("Settings of the Patrolling behaviour")]
     private PatrollingAgentConfig patrollingAgentConfig;
 
     private BaseAgent _agent;
@@ -41,7 +44,7 @@ public class Walker : MonoBehaviour {
     }
 
     // Update is called once per frame
-    void Update() {
+    private void Update() {
         _agent.Step();
     }
 }

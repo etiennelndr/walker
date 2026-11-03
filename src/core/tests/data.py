@@ -25,6 +25,7 @@ RECORD: dict[str, Any] = {
     "session": "1b4e28ba-2fa1-41d2-883f-0016d3cca427",
     "walker": "Walker",
     "scene": "scene",
+    "map_seed": 1234,
     "frame": 42,
     "time": 4.2,
     "observation": OBSERVATION,

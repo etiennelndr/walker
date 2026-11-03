@@ -25,6 +25,7 @@ def make_record(**fields: Any) -> Record:
         session=UUID("1b4e28ba-2fa1-41d2-883f-0016d3cca427"),
         walker="Walker",
         scene="scene",
+        map_seed=1234,
         frame=42,
         time=4.2,
         observation=Observation.decode(OBSERVATION),
@@ -73,7 +74,12 @@ def test_encode(data: dict[str, Any]) -> None:
             {key: value for key, value in RECORD.items() if key != "observation"},
             id="missing-field",
         ),
+        pytest.param(
+            {key: value for key, value in RECORD.items() if key != "map_seed"},
+            id="missing-map-seed",
+        ),
         pytest.param(RECORD | {"session": "session"}, id="session-format"),
+        pytest.param(RECORD | {"map_seed": "seed"}, id="map-seed-type"),
         pytest.param(RECORD | {"contacts": "many"}, id="field-type"),
     ],
 )
